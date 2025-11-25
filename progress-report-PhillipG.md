@@ -1,0 +1,37 @@
+Lab 4 progress report Phillip Giametta
+================
+
+``` r
+library(tidyverse)
+library(rvest)
+library(readr)
+
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
+
+html <- read_html(url)
+tables <- html_table(html, fill = TRUE)
+
+raw <- tables[[1]]   
+
+col_names <- raw[1, ] |> unlist() |> as.character()
+
+colnames(raw) <- col_names
+
+data <- raw[-1, ]
+
+
+data$`%vote` <- parse_number(data$`%vote`)
+
+num_cols <- c("Votes", "WAR", "WAR7", "JAWS", "Jpos", "HOFm", "HOFs")
+data[num_cols] <- lapply(data[num_cols], readr::parse_number)
+
+data$Name <- gsub("\\+", "", data$Name)
+
+data$inducted <- ifelse(data$`%vote` >= 75, "Y", "N")
+
+data$yearID <- 2025
+
+HallOfFame_2025 <- data
+
+write_csv(HallOfFame_2025, "HallOfFame_2025.csv")
+```
