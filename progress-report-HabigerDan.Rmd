@@ -1,0 +1,87 @@
+---
+title: "Lab 4 Progress Report - HabigerDan"
+output: github_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## Load Required Libraries
+
+```{r load-packages}
+library(tidyverse)
+library(rvest)
+library(readr)
+```
+
+## Scrape the Data from Baseball Reference
+
+```{r scrape-data}
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
+html <- read_html(url)
+tables <- html_table(html, fill = TRUE)
+raw <- tables[[1]]
+```
+
+## Fix Column Names
+
+The first row contains the actual column names.
+
+```{r fix-names}
+col_names <- raw[1, ] |> unlist() |> as.character()
+colnames(raw) <- col_names
+
+data <- raw[-1, ]
+colnames(data) <- make.names(colnames(data), unique = TRUE)
+```
+
+## Convert to Numeric
+
+```{r convert-numeric}
+data$X.vote <- parse_number(data$X.vote)
+
+num_cols <- c("Votes", "WAR", "WAR7", "JAWS", "HOFm", "HOFs")
+data[num_cols] <- lapply(data[num_cols], readr::parse_number)
+```
+
+## Clean Names
+
+Remove special characters from player names.
+
+```{r clean-names}
+data$Name <- gsub("\\+", "", data$Name)
+data$Name <- gsub("\\*", "", data$Name)
+```
+
+## Add Required Variables
+
+```{r add-variables}
+data$inducted <- ifelse(data$X.vote >= 75, "Y", "N")
+
+data$yearID <- 2025
+```
+
+## Create Final Dataset
+
+```{r final-dataset}
+HallOfFame_2025 <- data
+```
+
+## Export to CSV
+
+```{r export}
+write_csv(HallOfFame_2025, "HallOfFame_2025.csv")
+```
+
+## Summary
+
+```{r summary}
+cat("Total candidates:", nrow(HallOfFame_2025), "\n")
+cat("Players inducted:", sum(HallOfFame_2025$inducted == "Y"), "\n")
+
+# Show inducted players
+HallOfFame_2025 |>
+  filter(inducted == "Y") |>
+  select(Name, Votes, X.vote)
+```
